@@ -468,7 +468,10 @@ class PromptBuilder(Base):
 
             # 添加数据
             for v in result:
-                glossary_prompt_lines.append(f"{v.get("src")}|{v.get("dst")}|{v.get("info") if v.get("info") != "" else " "}")
+                src = v.get("src")
+                dst = v.get("dst")
+                info = v.get("info") if v.get("info") != "" else " "
+                glossary_prompt_lines.append(f"{src}|{dst}|{info}")
 
         else:
             # 添加开头
@@ -479,7 +482,10 @@ class PromptBuilder(Base):
 
             # 添加数据
             for v in result:
-                glossary_prompt_lines.append(f"{v.get("src")}|{v.get("dst")}|{v.get("info") if v.get("info") != "" else " "}")
+                src = v.get("src")
+                dst = v.get("dst")
+                info = v.get("info") if v.get("info") != "" else " "
+                glossary_prompt_lines.append(f"{src}|{dst}|{info}")
 
 
         # 拼接成最终的字符串
@@ -736,7 +742,8 @@ class PromptBuilder(Base):
         formatted_rows = [item for item in input_list]
 
         # 使用换行符将列表元素连接成一个字符串
-        profile += f"{"\n".join(formatted_rows)}\n"
+        joined_rows = "\n".join(formatted_rows)
+        profile += f"{joined_rows}\n"
 
         profile += "</previous>\n"
 

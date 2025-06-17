@@ -51,8 +51,11 @@ class TextReplaceBPage(QFrame, Base):
 
         self._reset_search()
 
-    def _get_translated_column_name(self, index: int) -> str:
-        return self.tra(self.COLUMN_NAMES.get(index, f"字段{index+1}"))
+    def header_data(self, index):
+        col_name = self.COLUMN_NAMES.get(index)
+        if col_name is None:
+            col_name = f"字段{index+1}"
+        return self.tra(col_name)
 
     def showEvent(self, event: QEvent) -> None:
         super().showEvent(event)
@@ -177,7 +180,7 @@ class TextReplaceBPage(QFrame, Base):
 
         self.table.itemChanged.connect(item_changed)
 
-        header_labels = [self._get_translated_column_name(i) for i in range(len(TextReplaceBPage.KEYS))]
+        header_labels = [self.header_data(i) for i in range(len(TextReplaceBPage.KEYS))]
         self.table.setHorizontalHeaderLabels(header_labels)
 
         # 启用排序和连接信号
@@ -243,7 +246,7 @@ class TextReplaceBPage(QFrame, Base):
         # 7. 重置搜索状态，因为行顺序已改变
         self._reset_search() # 非常重要！
         self.info_toast("", self.tra("表格已按 '{}' {}排序").format(
-            self._get_translated_column_name(logicalIndex),
+            self.header_data(logicalIndex),
             self.tra("升序") if self._sort_order == Qt.AscendingOrder else self.tra("降序")
         ))
 
@@ -274,7 +277,7 @@ class TextReplaceBPage(QFrame, Base):
 
         # 特定字段的Action
         for i, key in enumerate(TextReplaceBPage.KEYS):
-            col_name = self._get_translated_column_name(i)
+            col_name = self.header_data(i)
             action = Action(col_name)
             # 使用带有默认参数捕获的lambda表达式以传递正确的索引和名称
             action.triggered.connect(lambda checked=False, index=i, name=col_name: self._set_search_field(index, name))
@@ -385,7 +388,7 @@ class TextReplaceBPage(QFrame, Base):
                     if target_col != -1: # 如果搜索特定列，则停止检查此行中的其他列
                          break
 
-        # 如果搜索“全部”导致每行有多个匹配项，则删除重复行
+        # 如果搜索"全部"导致每行有多个匹配项，则删除重复行
         if target_col == -1:
             unique_results = []
             seen_rows = set()
@@ -399,7 +402,7 @@ class TextReplaceBPage(QFrame, Base):
         if self._search_results:
             self._navigate_search_result(0) # 转到第一个结果
         else:
-            self._update_search_ui() # 更新UI以显示“0/0”
+            self._update_search_ui() # 更新UI以显示"0/0"
             if hasattr(self, 'table'): self.table.clearSelection() 
 
     # 更新搜索UI

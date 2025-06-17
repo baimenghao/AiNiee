@@ -140,10 +140,14 @@ class PlatformPage(QFrame, Base):
         Base.work_status = Base.STATUS.IDLE
 
         if len(data.get("failure", [])) > 0:
-            info_cont = self.tra("接口测试结果：成功") + f"   {len(data.get("success", []))}"+ "......" + self.tra("失败") + f"{   len(data.get("failure", []))}" + "......"
+            success_count = len(data.get("success", []))
+            failure_count = len(data.get("failure", []))
+            info_cont = self.tra("接口测试结果：成功") + f"   {success_count}" + "......" + self.tra("失败") + f"{failure_count}" + "......"
             self.error_toast("", info_cont)
         else:
-            info_cont = self.tra("接口测试结果：成功") + f"   {len(data.get("success", []))}"+ "......" + self.tra("失败") + f"{   len(data.get("failure", []))}" + "......"
+            success_count = len(data.get("success", []))
+            failure_count = len(data.get("failure", []))
+            info_cont = self.tra("接口测试结果：成功") + f"   {success_count}" + "......" + self.tra("失败") + f"{failure_count}" + "......"
             self.success_toast("", info_cont)
 
     # 加载并更新预设配置

@@ -1,4 +1,4 @@
-# System
+﻿# System
 pyinstaller
 openai
 boto3
@@ -25,7 +25,7 @@ tqdm
 jaconv
 python-rapidjson
 protobuf==4.25.7
-# 获取iso语言代码对应的友好名称
+# 鑾峰彇iso璇█浠ｇ爜瀵瑰簲鐨勫弸濂藉悕绉?
 language-data
 langcodes
 msgspec
@@ -38,9 +38,9 @@ matplotlib
 sounddevice>=0.4.4
 
 # BabelDOC
-# onnx 新版本打包后不能运行，这里使用 onnx==1.16.1 onnxruntime==1.20.1
-# rapidocr-onnxruntime 依赖了 opencv-python，所以去除了 opencv-python-headless
-# 不使用 babeldoc.document_il.midend.detect_scanned_file.DetectScannedFile 所以去除 scikit-image>=0.25.2
+# onnx 鏂扮増鏈墦鍖呭悗涓嶈兘杩愯锛岃繖閲屼娇鐢?onnx==1.16.1 onnxruntime==1.20.1
+# rapidocr-onnxruntime 渚濊禆浜?opencv-python锛屾墍浠ュ幓闄や簡 opencv-python-headless
+# 涓嶄娇鐢?babeldoc.document_il.midend.detect_scanned_file.DetectScannedFile 鎵€浠ュ幓闄?scikit-image>=0.25.2
 bitstring>=4.3.0
 configargparse>=1.7
 httpx[socks]>=0.27.0

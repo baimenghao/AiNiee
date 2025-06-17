@@ -351,3 +351,9 @@ class TranslationExamplePromptPage(QFrame, Base):
             Action(FluentIcon.SHARE, self.tra("导出"), parent, triggered = triggered),
         )
 
+    def header_data(self, index):
+        col_name = self.COLUMN_NAMES.get(index)
+        if col_name is None:
+            col_name = f"字段{index+1}"
+        return self.tra(col_name)
+

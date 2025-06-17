@@ -1,4 +1,5 @@
 import fnmatch
+import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Callable
@@ -55,9 +56,10 @@ class DirectoryReader:
             self._update_exclude_rules(reader.exclude_rules)
             cache_project.project_type = reader.get_project_type()
 
-            for root, _, files in source_directory.walk():  # 递归遍历文件夹
+            # 使用 os.walk() 替代 pathlib.Path.walk()，因为后者在 Python 3.10 中不存在
+            for root, _, files in os.walk(source_directory):
                 for file in files:
-                    file_path = root / file
+                    file_path = Path(root) / file
                     # 检查是否被排除，以及是否是目标类型文件
                     if not self.is_exclude(file_path, source_directory) and reader.can_read(file_path):
 

@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any
+from typing_extensions import Self
 
 from ModuleFolders.FileOutputer.BaseWriter import BaseTranslationWriter
 from ModuleFolders.FileReader.BaseReader import BaseSourceReader

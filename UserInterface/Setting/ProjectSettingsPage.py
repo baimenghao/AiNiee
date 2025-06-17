@@ -400,7 +400,8 @@ class ProjectSettingsPage_B(QFrame, Base):
     # 输出文件夹
     def add_widget_06(self, parent, config) -> None:
         def widget_init(widget):
-            info_cont = self.tra("当前输出文件夹为") + f" {config.get("label_output_path")}"
+            output_path = config.get("label_output_path")
+            info_cont = self.tra("当前输出文件夹为") + f" {output_path}"
             widget.set_description(info_cont)
             widget.set_text(self.tra("选择文件夹"))
             widget.set_icon(FluentIcon.FOLDER_ADD)

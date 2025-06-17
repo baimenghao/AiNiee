@@ -387,7 +387,7 @@ class PromptDictionaryPage(QFrame, Base):
                     if target_col != -1: # 如果搜索特定列，则停止检查此行中的其他列
                          break
 
-        # 如果搜索“全部”导致每行有多个匹配项，则删除重复行
+        # 如果搜索"全部"导致每行有多个匹配项，则删除重复行
         if target_col == -1:
             unique_results = []
             seen_rows = set()
@@ -401,7 +401,7 @@ class PromptDictionaryPage(QFrame, Base):
         if self._search_results:
             self._navigate_search_result(0) # 转到第一个结果
         else:
-            self._update_search_ui() # 更新UI以显示“0/0”
+            self._update_search_ui() # 更新UI以显示"0/0"
             if hasattr(self, 'table'): self.table.clearSelection() 
 
     # 更新搜索UI
@@ -643,3 +643,9 @@ class PromptDictionaryPage(QFrame, Base):
                 self._reset_search()
                 self._reset_sort_indicator()
                 self.success_toast("", self.tra("术语表翻译成功并已更新") + "...")
+
+    def header_data(self, index):
+        col_name = self.COLUMN_NAMES.get(index)
+        if col_name is None:
+            col_name = f"字段{index+1}"
+        return self.tra(col_name)

@@ -19,7 +19,8 @@ class VttWriter(BaseTranslatedWriter):
         source_file_path: Path = None,
     ):
         # 头信息
-        header = f"{cache_file.require_extra("top_text")}\n\n"
+        top_text = cache_file.require_extra("top_text")
+        header = f"{top_text}\n\n"
         output_lines = []
         for item in cache_file.items:
             block = []

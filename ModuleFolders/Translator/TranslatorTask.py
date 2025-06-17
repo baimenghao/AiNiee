@@ -191,7 +191,8 @@ class TranslatorTask(Base):
         if self.config.pre_line_counts and previous_text_list:
             previous = PromptBuilder.build_pre_text(self.config, previous_text_list)
             if previous != "":
-                extra_log.append(f"###上文内容\n{"\n".join(previous_text_list)}")
+                joined_text = "\n".join(previous_text_list)
+                extra_log.append(f"###上文内容\n{joined_text}")
 
         # 获取用户提问时的前置文本
         pre_prompt = PromptBuilder.build_userQueryPrefix(self.config)

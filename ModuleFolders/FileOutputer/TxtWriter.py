@@ -56,8 +56,9 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
 
     def _item_to_translated_line(self, item: CacheItem):
         line_break = "\n" * (item.require_extra("line_break") + 1)
+        indent = item.require_extra("sentence_indent")
 
-        return f"{item.require_extra("sentence_indent")}{item.translated_text.lstrip()}{line_break}"
+        return f"{indent}{item.translated_text.lstrip()}{line_break}"
 
     @classmethod
     def get_project_type(self):

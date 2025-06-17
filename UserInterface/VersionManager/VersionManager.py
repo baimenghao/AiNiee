@@ -94,7 +94,8 @@ class VersionManager(Base):
             else:
                 self.error(f"Failed to check for updates: {response.status_code}")
 
-                self.check_error = f"{self.tra("HTTP错误")}: {response.status_code}"
+                http_error_text = self.tra("HTTP错误")
+                self.check_error = f"{http_error_text}: {response.status_code}"
                 return False, self.current_version
         except Exception as e:
             self.error(f"Error checking for updates: {e}")

@@ -59,8 +59,11 @@ class CharacterizationPromptPage(QFrame, Base):
         self.add_widget_body(self.container, config, window)
         self.add_widget_foot(self.container, config, window)
 
-    def _get_translated_column_name(self, index: int) -> str:
-        return self.tra(self.COLUMN_NAMES.get(index, f"字段{index+1}"))
+    def header_data(self, index):
+        col_name = self.COLUMN_NAMES.get(index)
+        if col_name is None:
+            col_name = f"字段{index+1}"
+        return self.tra(col_name)
 
     def showEvent(self, event: QEvent) -> None:
         super().showEvent(event)
@@ -179,7 +182,7 @@ class CharacterizationPromptPage(QFrame, Base):
 
         self.table.itemChanged.connect(item_changed)
 
-        header_labels = [self._get_translated_column_name(i) for i in range(len(CharacterizationPromptPage.KEYS))]
+        header_labels = [self.header_data(i) for i in range(len(CharacterizationPromptPage.KEYS))]
         self.table.setHorizontalHeaderLabels(header_labels)
 
         # 启用排序和连接信号
@@ -244,7 +247,7 @@ class CharacterizationPromptPage(QFrame, Base):
 
         # 7. 重置搜索状态，因为行顺序已改变
         self.info_toast("", self.tra("表格已按 '{}' {}排序").format(
-            self._get_translated_column_name(logicalIndex),
+            self.header_data(logicalIndex),
             self.tra("升序") if self._sort_order == Qt.AscendingOrder else self.tra("降序")
         ))
 
