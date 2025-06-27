@@ -8,7 +8,8 @@ from ModuleFolders.FileOutputer.BaseWriter import (
     BaseBilingualWriter,
     BaseTranslatedWriter,
     OutputConfig,
-    PreWriteMetadata
+    PreWriteMetadata,
+    BilingualOrder,
 )
 
 
@@ -44,21 +45,27 @@ class TxtWriter(BaseBilingualWriter, BaseTranslatedWriter):
 
         translation_file_path.write_text("".join(lines), encoding=pre_write_metadata.encoding)
 
+    # 双语版构建
     def _item_to_bilingual_line(self, item: CacheItem):
-        # 至少2个换行，让双语排版不那么紧凑，但用户说不需要，要原文排版
         line_break = "\n" * max(item.require_extra("line_break") + 1, 1)
-        indent = item.require_extra("sentence_indent")
-
-        return (
-            f"{indent}{item.source_text.lstrip()}\n"
-            f"{indent}{item.translated_text.lstrip()}{line_break}"
-        )
-
+        
+        # 检查配置并决定输出顺序
+        if self.output_config.bilingual_order == BilingualOrder.TRANSLATION_FIRST:
+            return (
+                f"{item.final_text}\n"
+                f"{item.source_text}{line_break}"
+            )
+        else: # 默认为原文在前
+            return (
+                f"{item.source_text}\n"
+                f"{item.final_text}{line_break}"
+            )
+        
+    # 译文版构建
     def _item_to_translated_line(self, item: CacheItem):
         line_break = "\n" * (item.require_extra("line_break") + 1)
-        indent = item.require_extra("sentence_indent")
 
-        return f"{indent}{item.translated_text.lstrip()}{line_break}"
+        return f"{item.final_text}{line_break}"
 
     @classmethod
     def get_project_type(self):

@@ -8,7 +8,7 @@ from rich import print
 from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.Cache.CacheProject import CacheProject, ProjectType
 from PluginScripts.PluginBase import PluginBase
-from ModuleFolders.Translator.TranslatorConfig import TranslatorConfig
+from ModuleFolders.TaskConfig.TaskConfig import TaskConfig
 
 class MToolOptimizer(PluginBase):
 
@@ -19,7 +19,7 @@ class MToolOptimizer(PluginBase):
         self.description = (
             "MTool 优化器，优化翻译流程，提升翻译质量，至多可减少 40% 的 翻译时间 与 Token 消耗"
             + "\n" + "但可能会带来稳定性下降，翻译错行，翻译不通畅等问题，请酌情开启"
-            + "\n" + "兼容性：支持全部语言；支持全部模型；仅支持 MTool 文本；"
+            + "\n" + "兼容性：支持全部语言；支持全部模型；仅支持 MTool 文本；仅支持翻译流程；"
         )
 
         self.visibility = True          # 是否在插件设置中显示
@@ -29,7 +29,7 @@ class MToolOptimizer(PluginBase):
         self.add_event("preproces_text", PluginBase.PRIORITY.NORMAL)
         self.add_event("postprocess_text", PluginBase.PRIORITY.NORMAL)
 
-    def on_event(self, event: str, config: TranslatorConfig, data: CacheProject) -> None:
+    def on_event(self, event: str, config: TaskConfig, data: CacheProject) -> None:
 
         # 限制文本格式
         if ProjectType.MTOOL not in data.file_project_types:
@@ -51,7 +51,7 @@ class MToolOptimizer(PluginBase):
             self.on_postprocess_text(event, config, mtool_items)
 
     # 文本预处理事件
-    def on_preproces_text(self, event: str, config: TranslatorConfig, items: list[CacheItem]) -> None:
+    def on_preproces_text(self, event: str, config: TaskConfig, items: list[CacheItem]) -> None:
 
         # 检查需要移除的条目
         # 将包含换行符的长句拆分，然后查找与这些拆分后得到的短句相同的句子并移除它们
@@ -82,7 +82,7 @@ class MToolOptimizer(PluginBase):
         print("")
 
     # 文本后处理事件
-    def on_postprocess_text(self, event: str, config: TranslatorConfig, items: list[CacheItem]) -> None:
+    def on_postprocess_text(self, event: str, config: TaskConfig, items: list[CacheItem]) -> None:
 
         print("")
         print("[MToolOptimizer] 开始执行后处理 ...")

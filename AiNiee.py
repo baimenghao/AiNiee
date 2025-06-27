@@ -1,4 +1,4 @@
- #
+#
 #                        _oo0oo_
 #                       o8888888o
 #                       88" . "88
@@ -30,12 +30,11 @@ import multiprocessing
 import warnings
 
 import rapidjson as json
+from bs4 import MarkupResemblesLocatorWarning
 from rich import print
 from PyQt5.QtGui import QFont, QIcon, QColor
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QSplashScreen
-
-
 
 
 # 过滤protobuf的警告信息
@@ -45,6 +44,8 @@ warnings.filterwarnings(
     category=UserWarning,
     module=r'google\.protobuf\.symbol_database'  # 警告来源的模块 (正则)
 )
+# 过滤pBeautiful Soup的警告信息
+warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)
 
 def display_banner():
     print(" █████   ██  ███    ██  ██  ███████  ███████ ")
@@ -133,48 +134,49 @@ if __name__ == "__main__":
         font.setHintingPreference(QFont.PreferNoHinting)
     app.setFont(font)
 
-
-    update_splash_message(splash, "正在加载插件管理器... (10%)", app) # 跟新启动页消息
-
     # 创建全局插件管理器
+    update_splash_message(splash, "正在加载插件管理器... (10%)", app) # 更新启动页消息
     from Base.PluginManager import PluginManager
     plugin_manager = PluginManager()
     plugin_path = os.path.join(".", "PluginScripts")
     plugin_manager.load_plugins_from_directory(plugin_path)
 
-
-    update_splash_message(splash, "正在加载文件读写器... (25%)", app) 
+    # 创建全局缓存器
+    update_splash_message(splash, "正在加缓存器... (15%)", app)
+    from ModuleFolders.Cache.CacheManager import CacheManager
+    cache_manager = CacheManager()
 
     # 创建全局文件读写器(高性能消耗)
+    update_splash_message(splash, "正在加载文件读写器... (25%)", app) 
     from ModuleFolders.FileReader.FileReader import FileReader
     file_reader = FileReader()
     from ModuleFolders.FileOutputer.FileOutputer import FileOutputer
     file_writer = FileOutputer()
 
 
+    # 创建窗口对象(高性能消耗)
     update_splash_message(splash, "正在加载核心组件... (50%)", app)
-
-    # 创建全局窗口对象(高性能消耗)
     from UserInterface.AppFluentWindow import AppFluentWindow
     app_fluent_window = AppFluentWindow(
-        version="AiNiee6.5.2 dev",
+        version="AiNiee7 dev",
         plugin_manager=plugin_manager,
-        support_project_types=file_reader.get_support_project_types(),
+        cache_manager=cache_manager,
+        file_reader =file_reader,
     )
 
+    # 创建简易执行器对象，并初始化订阅事件
+    update_splash_message(splash, "正在加载简易执行器... (60%)", app)
+    from ModuleFolders.SimpleExecutor.SimpleExecutor import SimpleExecutor
+    simple_executor = SimpleExecutor()
 
-    update_splash_message(splash, "正在加载测试器组件... (60%)", app)
-
-    # 创建全局接口测试器对象，并初始化订阅事件
-    from ModuleFolders.RequestTester.RequestTester import RequestTester
-    request_tester = RequestTester()
-
-    update_splash_message(splash, "正在加载翻译器... (75%)", app)
-
-    # 创建翻译器对象，并初始化订阅事件(高性能消耗)
-    from ModuleFolders.Translator.Translator import Translator
-    translator = Translator(
-        plugin_manager=plugin_manager, file_reader=file_reader, file_writer=file_writer
+    # 创建任务执行器，并初始化订阅事件(高性能消耗)
+    update_splash_message(splash, "正在加载任务执行器... (75%)", app)
+    from ModuleFolders.TaskExecutor.TaskExecutor import TaskExecutor
+    task_executor = TaskExecutor(
+        plugin_manager=plugin_manager,
+        cache_manager=cache_manager,
+        file_reader=file_reader, 
+        file_writer=file_writer
     )
 
 

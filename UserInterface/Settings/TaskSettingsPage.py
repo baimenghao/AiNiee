@@ -1,11 +1,10 @@
 from PyQt5.QtWidgets import QFrame
 from PyQt5.QtWidgets import QVBoxLayout
+from qfluentwidgets import HorizontalSeparator
 
 from Base.Base import Base
 from Widget.SpinCard import SpinCard
-from Widget.Separator import Separator
 from Widget.ComboBoxCard import ComboBoxCard
-from Widget.SwitchButtonCard import SwitchButtonCard
 
 class TaskSettingsPage(QFrame, Base):
 
@@ -41,9 +40,9 @@ class TaskSettingsPage(QFrame, Base):
         self.add_widget_01(self.vbox, config)
         self.add_widget_02(self.vbox, config)
         self.add_widget_03(self.vbox, config)
-        self.vbox.addWidget(Separator())
+        self.vbox.addWidget(HorizontalSeparator())
         self.add_widget_04(self.vbox, config)
-        self.vbox.addWidget(Separator())
+        self.vbox.addWidget(HorizontalSeparator())
         self.add_widget_request_timeout(self.vbox, config)
         self.add_widget_06(self.vbox, config)
 
@@ -194,7 +193,7 @@ class TaskSettingsPage(QFrame, Base):
         parent.addWidget(
             SpinCard(
                 self.tra("请求超时时间(s)"),
-                self.tra("任务发起请求时等待模型回复的最长时间，超时仍未收到回复，则会判断为任务失败"),
+                self.tra("单元任务发起请求时等待模型回复的最长时间，超时仍未收到回复，则会判断为任务失败"),
                 init = init,
                 value_changed = value_changed,
             )
@@ -214,7 +213,7 @@ class TaskSettingsPage(QFrame, Base):
         parent.addWidget(
             SpinCard(
                 self.tra("任务流程的最大轮次"),
-                self.tra("当完成一轮翻译后，如果还有未翻译的条目，将重新开始新的翻译流程，直到翻译完成或者达到最大轮次"),
+                self.tra("当完成一轮任务后，如果还有未翻译/润色的条目，将重新开始新的任务流程，直到翻译/润色完成或者达到最大轮次"),
                 init = init,
                 value_changed = value_changed,
             )
