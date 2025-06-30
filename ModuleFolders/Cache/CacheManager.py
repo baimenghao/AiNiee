@@ -9,7 +9,7 @@ from typing import Dict, List, Tuple
 import msgspec
 import rapidjson as json
 
-from Base.Base import Base
+from Base.BaseLogic import BaseLogic
 from ModuleFolders.TaskConfig.TaskType import TaskType
 from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
@@ -19,7 +19,7 @@ from ModuleFolders.Cache.CacheProject import (
 )
 
 
-class CacheManager(Base):
+class CacheManager(BaseLogic):
     SAVE_INTERVAL = 8  # 缓存保存间隔（秒）
 
     def __init__(self) -> None:
@@ -29,8 +29,8 @@ class CacheManager(Base):
         self.file_lock = threading.Lock()
 
         # 注册事件
-        self.subscribe(Base.EVENT.TASK_START, self.start_interval_saving)
-        self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
+        self.subscribe(self.EVENT.TASK_START, self.start_interval_saving)
+        self.subscribe(self.EVENT.APP_SHUT_DOWN, self.app_shut_down)
 
     def start_interval_saving(self, event: int, data: dict):
         # 定时器
@@ -339,7 +339,7 @@ class CacheManager(Base):
     # 缓存重编排方法
     def reformat_and_splice_cache(self, file_path: str, formatted_data: dict, selected_item_indices: list[int]) -> list[CacheItem] | None:
         """
-        根据格式化后的数据，对指定文件中的选中项进行“切片和拼接”操作。
+        根据格式化后的数据，对指定文件中的选中项进行"切片和拼接"操作。
         此操作会移除旧的选中项，并在原位置插入新的项。
 
         Args:

@@ -1,47 +1,46 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtCore import QObject
-from PyQt5.QtCore import pyqtSignal
+import threading
+from collections import defaultdict
 
-class EventManager(QObject):
-
-    # 单一实例
+class EventManager:
     _singleton = None
+    _lock = threading.Lock()
 
-    # 自定义信号
-    # 字典类型或者其他复杂对象应该使用 object 作为信号参数类型，这样可以传递任意 Python 对象，包括 dict
-    signal = pyqtSignal(int, object)
+    def __new__(cls, *args, **kwargs):
+        if not cls._singleton:
+            with cls._lock:
+                # Double-checked locking
+                if not cls._singleton:
+                    cls._singleton = super().__new__(cls)
+                    cls._singleton._initialized = False
+        return cls._singleton
 
-    # 事件列表
-    event_callbacks = {}
+    def __init__(self):
+        if self._initialized:
+            return
+        with self._lock:
+            if self._initialized:
+                return
+            self.event_callbacks = defaultdict(list)
+            self._initialized = True
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.signal.connect(self.process_event, Qt.QueuedConnection)
-
-    # 获取单例
-    def get_singleton():
-        if EventManager._singleton == None:
-            EventManager._singleton = EventManager()
-
-        return EventManager._singleton
-
-    # 处理事件
-    def process_event(self, event: int, data: dict):
-        if event in self.event_callbacks:
-            for hanlder in self.event_callbacks[event]:
-                hanlder(event, data)
-
-    # 触发事件
     def emit(self, event: int, data: dict):
-        self.signal.emit(event, data)
-
-    # 订阅事件
-    def subscribe(self, event: int, hanlder: callable):
-        if event not in self.event_callbacks:
-            self.event_callbacks[event] = []
-        self.event_callbacks[event].append(hanlder)
-
-    # 取消订阅事件
-    def unsubscribe(self, event: int, hanlder: callable):
+        # The original used Qt.QueuedConnection, which is async.
+        # Direct calling is sync. For a backend, this is often simpler and acceptable.
+        # A copy is made to prevent issues if a handler modifies the list during iteration.
         if event in self.event_callbacks:
-            self.event_callbacks[event].remove(hanlder)
+            for handler in self.event_callbacks[event][:]:
+                try:
+                    handler(event, data)
+                except Exception as e:
+                    # In a real app, you'd want to log this properly.
+                    print(f"Error in event handler for event {event}: {e}")
+
+    def subscribe(self, event: int, handler: callable):
+        with self._lock:
+            if handler not in self.event_callbacks[event]:
+                self.event_callbacks[event].append(handler)
+
+    def unsubscribe(self, event: int, handler: callable):
+        with self._lock:
+            if event in self.event_callbacks and handler in self.event_callbacks[event]:
+                self.event_callbacks[event].remove(handler)

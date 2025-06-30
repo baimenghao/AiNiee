@@ -5,11 +5,11 @@ import urllib
 
 import rapidjson as json
 
-from Base.Base import Base
+from Base.BaseLogic import BaseLogic
 from ModuleFolders.TaskConfig.TaskType import TaskType
 
 # 接口请求器
-class TaskConfig(Base):
+class TaskConfig(BaseLogic):
 
     # 打印时的类型过滤器
     TYPE_FILTER = (int, str, bool, float, list, dict, tuple)

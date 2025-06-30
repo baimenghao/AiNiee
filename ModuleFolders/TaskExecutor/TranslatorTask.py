@@ -7,7 +7,7 @@ from rich import box
 from rich.table import Table
 from rich.markup import escape
 
-from Base.Base import Base
+from Base.BaseLogic import BaseLogic
 from Base.PluginManager import PluginManager
 from ModuleFolders.Cache.CacheItem import CacheItem, TranslationStatus
 from ModuleFolders.TaskConfig.TaskConfig import TaskConfig
@@ -22,7 +22,7 @@ from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
 from ModuleFolders.TextProcessor.TextProcessor import TextProcessor
 
 
-class TranslatorTask(Base):
+class TranslatorTask(BaseLogic):
 
     def __init__(self, config: TaskConfig, plugin_manager: PluginManager, request_limiter: RequestLimiter, source_lang) -> None:
         super().__init__()
@@ -120,7 +120,7 @@ class TranslatorTask(Base):
 
         while True:
             # 检测是否收到停止翻译事件
-            if Base.work_status == Base.STATUS.STOPING:
+            if BaseLogic.work_status == BaseLogic.STATUS.STOPING:
                 return {}
 
             # 检查是否超时，超时则直接跳过当前任务，以避免死循环

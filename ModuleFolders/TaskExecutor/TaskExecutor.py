@@ -5,7 +5,7 @@ import concurrent.futures
 import opencc
 from tqdm import tqdm
 
-from Base.Base import Base
+from Base.BaseLogic import BaseLogic
 from ModuleFolders.Cache.CacheItem import TranslationStatus
 from ModuleFolders.Cache.CacheManager import CacheManager
 from ModuleFolders.Cache.CacheProject import CacheProjectStatistics
@@ -23,7 +23,7 @@ from ModuleFolders.TaskExecutor.TranslatorUtil import get_source_language_for_fi
 
 
 # 翻译器
-class TaskExecutor(Base):
+class TaskExecutor(BaseLogic):
 
     def __init__(self, plugin_manager,cache_manager, file_reader, file_writer) -> None:
         super().__init__()
@@ -37,14 +37,14 @@ class TaskExecutor(Base):
         self.request_limiter = RequestLimiter()
 
         # 注册事件
-        self.subscribe(Base.EVENT.TASK_STOP, self.task_stop)
-        self.subscribe(Base.EVENT.TASK_START, self.task_start)
-        self.subscribe(Base.EVENT.TASK_MANUAL_EXPORT, self.task_manual_export)
-        self.subscribe(Base.EVENT.APP_SHUT_DOWN, self.app_shut_down)
+        self.subscribe(self.EVENT.TASK_STOP, self.task_stop)
+        self.subscribe(self.EVENT.TASK_START, self.task_start)
+        self.subscribe(self.EVENT.TASK_MANUAL_EXPORT, self.task_manual_export)
+        self.subscribe(self.EVENT.APP_SHUT_DOWN, self.app_shut_down)
 
     # 应用关闭事件
     def app_shut_down(self, event: int, data: dict) -> None:
-        Base.work_status = Base.STATUS.STOPING
+        self.work_status = self.STATUS.STOPING
 
     # 手动导出事件
     def task_manual_export(self, event: int, data: dict) -> None:
@@ -102,16 +102,16 @@ class TaskExecutor(Base):
     # 任务停止事件
     def task_stop(self, event: int, data: dict) -> None:
         # 设置运行状态为停止中
-        Base.work_status = Base.STATUS.STOPING
+        self.work_status = self.STATUS.STOPING
 
         def target() -> None:
             while True:
                 time.sleep(0.5)
-                if Base.work_status == Base.STATUS.TASKSTOPPED:
+                if self.work_status == self.STATUS.TASKSTOPPED:
                     self.print("")
                     self.info("翻译任务已停止 ...")
                     self.print("")
-                    self.emit(Base.EVENT.TASK_STOP_DONE, {})
+                    self.emit(self.EVENT.TASK_STOP_DONE, {})
                     break
 
         # 子线程循环检测停止状态
@@ -147,7 +147,7 @@ class TaskExecutor(Base):
     def translation_start_target(self, continue_status: bool) -> None:
 
         # 设置翻译状态为正在翻译状态
-        Base.work_status = Base.STATUS.TASKING
+        self.work_status = self.STATUS.TASKING
 
         # 读取配置文件，并保存到该类中
         self.config.initialize()
@@ -169,7 +169,7 @@ class TaskExecutor(Base):
             self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量
 
         # 更新监控面板信息
-        self.emit(Base.EVENT.TASK_UPDATE, self.project_status_data.to_dict())
+        self.emit(self.EVENT.TASK_UPDATE, self.project_status_data.to_dict())
 
         # 触发插件事件
         self.plugin_manager.broadcast_event("text_filter", self.config, self.cache_manager.project)
@@ -178,10 +178,10 @@ class TaskExecutor(Base):
         # 根据最大轮次循环
         for current_round in range(self.config.round_limit + 1):
             # 检测是否需要停止任务
-            if Base.work_status == Base.STATUS.STOPING:
+            if self.work_status == self.STATUS.STOPING:
                 # 循环次数比实际最大轮次要多一轮，当触发停止翻译的事件时，最后都会从这里退出任务
                 # 执行到这里说明停止任意的任务已经执行完毕，可以重置内部状态了
-                Base.work_status = Base.STATUS.TASKSTOPPED
+                self.work_status = self.STATUS.TASKSTOPPED
                 return None
 
             # 获取 待翻译 状态的条目数量
@@ -315,20 +315,20 @@ class TaskExecutor(Base):
         self.print("")
 
         # 重置内部状态（正常完成翻译）
-        Base.work_status = Base.STATUS.TASKSTOPPED
+        self.work_status = self.STATUS.TASKSTOPPED
 
         # 触发翻译停止完成的事件
-        self.emit(Base.EVENT.TASK_STOP_DONE, {})
+        self.emit(self.EVENT.TASK_STOP_DONE, {})
         self.plugin_manager.broadcast_event("translation_completed", self.config, self.cache_manager.project)
 
         # 触发翻译完成事件
-        self.emit(Base.EVENT.TASK_COMPLETED, {})
+        self.emit(self.EVENT.TASK_COMPLETED, {})
 
     # 润色主流程
     def polish_start_target(self, continue_status: bool) -> None:
 
         # 设置翻译状态为正在翻译状态
-        Base.work_status = Base.STATUS.TASKING
+        self.work_status = self.STATUS.TASKING
 
         # 读取配置文件，并保存到该类中
         self.config.initialize()
@@ -350,7 +350,7 @@ class TaskExecutor(Base):
             self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量
 
         # 更新监控面板信息
-        self.emit(Base.EVENT.TASK_UPDATE, self.project_status_data.to_dict())
+        self.emit(self.EVENT.TASK_UPDATE, self.project_status_data.to_dict())
 
         # 触发插件事件
         self.plugin_manager.broadcast_event("text_filter", self.config, self.cache_manager.project)
@@ -359,10 +359,10 @@ class TaskExecutor(Base):
         # 根据最大轮次循环
         for current_round in range(self.config.round_limit + 1):
             # 检测是否需要停止任务
-            if Base.work_status == Base.STATUS.STOPING:
+            if self.work_status == self.STATUS.STOPING:
                 # 循环次数比实际最大轮次要多一轮，当触发停止翻译的事件时，最后都会从这里退出任务
                 # 执行到这里说明停止任意的任务已经执行完毕，可以重置内部状态了
-                Base.work_status = Base.STATUS.TASKSTOPPED
+                self.work_status = self.STATUS.TASKSTOPPED
                 return None
 
             # 根据润色模式，获取可润色的条目数量
@@ -478,12 +478,12 @@ class TaskExecutor(Base):
         self.print("")
 
         # 重置内部状态
-        Base.work_status = Base.STATUS.TASKSTOPPED
+        self.work_status = self.STATUS.TASKSTOPPED
 
         # 触发事件
-        self.emit(Base.EVENT.TASK_STOP_DONE, {})     # 翻译停止完成的事件
+        self.emit(self.EVENT.TASK_STOP_DONE, {})     # 翻译停止完成的事件
         self.plugin_manager.broadcast_event("polish_completed", self.config, self.cache_manager.project)
-        self.emit(Base.EVENT.TASK_COMPLETED, {})     # 翻译完成事件
+        self.emit(self.EVENT.TASK_COMPLETED, {})     # 翻译完成事件
 
 
 
@@ -511,7 +511,7 @@ class TaskExecutor(Base):
             self.cache_manager.require_save_to_file(self.config.label_output_path)
 
             # 触发翻译进度更新事件
-            self.emit(Base.EVENT.TASK_UPDATE, stats_dict)
+            self.emit(self.EVENT.TASK_UPDATE, stats_dict)
         except Exception as e:
             self.error(f"翻译任务错误 ... {e}", e if self.is_debug() else None)
 
