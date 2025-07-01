@@ -78,9 +78,9 @@ def get_lang_detector():
         # Record start time
         start_time = time.time()
 
-        # 设置模型目录
-        script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        model_path = os.path.join(script_dir, "Resource", "Models", "mediapipe", "language_detector.tflite")
+        # 设置模型目录（始终以项目根目录为基准）
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        model_path = os.path.join(project_root, "Resource", "Models", "mediapipe", "language_detector.tflite")
 
         if not os.path.exists(model_path):
             rich.print(f"[[red]ERROR[/]] 模型文件不存在于: {model_path}")

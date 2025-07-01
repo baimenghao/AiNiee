@@ -23,7 +23,65 @@ class TaskConfig(BaseLogic):
         self._api_key_lock = threading.Lock()
         self.apikey_index = 0
         self.apikey_list = []
-
+        self.label_output_path = "./output"
+        self.polishing_output_path = "./polish_output"
+        self.auto_set_output_path = True
+        self.output_filename_suffix = "_translated"
+        self.bilingual_text_order = "translation_first"
+        self.response_conversion_toggle = False
+        self.opencc_preset = "s2t"
+        self.keep_original_encoding = False
+        self.lines_limit_switch = False
+        self.tokens_limit_switch = True
+        self.lines_limit = 10
+        self.tokens_limit = 512
+        self.user_thread_counts = 0
+        self.request_timeout = 120
+        self.round_limit = 10
+        self.translation_project = "AutoType"
+        self.source_language = "auto"
+        self.target_language = "chinese_simplified"
+        self.model = ""
+        self.target_platform = ""
+        self.api_settings = {}
+        self.platforms = {}
+        self.label_input_path = ""
+        self.actual_thread_counts = 1
+        self.pre_line_counts = 1
+        self.polishing_mode_selection = "source_text_polish"
+        self.polishing_pre_line_counts = 1
+        self.polishing_prompt_selection = {"last_selected_id": None, "prompt_content": ""}
+        self.pre_translation_data = []
+        self.post_translation_data = []
+        self.exclusion_list_data = []
+        self.prompt_dictionary_data = []
+        self.pre_translation_switch = False
+        self.post_translation_switch = False
+        self.exclusion_list_switch = False
+        self.prompt_dictionary_switch = False
+        self.auto_process_text_code_segment = False
+        self.few_shot_and_example_switch = False
+        self.translation_example_switch = False
+        self.characterization_switch = False
+        self.writing_style_switch = False
+        self.world_building_switch = False
+        self.polishing_style_switch = False
+        self.writing_style_content = ""
+        self.world_building_content = ""
+        self.translation_example_data = []
+        self.translation_prompt_selection = {"last_selected_id": None, "prompt_content": ""}
+        self.translation_user_prompt_data = []
+        self.characterization_data = []
+        self.polishing_style_content = ""
+        self.polishing_user_prompt_data = []
+        self.polishing_prompt_selection = {"last_selected_id": None, "prompt_content": ""}
+        self.plugins_enable = {}
+        self.proxy_url = ""
+        self.proxy_enable = False
+        self.font_hinting = False
+        self.scale_factor = "100%"
+        self.interface_language_setting = "auto"
+        self.auto_check_update = True
 
     def __repr__(self) -> str:
         return (
@@ -36,7 +94,6 @@ class TaskConfig(BaseLogic):
             for k, v in vars(self).items()
             if isinstance(v, __class__.TYPE_FILTER)
         }
-
 
     def get_next_apikey(self) -> str:
         """
@@ -68,20 +125,33 @@ class TaskConfig(BaseLogic):
             setattr(self, key, value)
 
     # 准备翻译
-    def prepare_for_translation(self,mode) -> None:
-
+    def prepare_for_translation(self, mode, from_api=False) -> None:
+        print(f"[prepare_for_translation] 进入方法, mode={mode}")
+        # 只打印接口传递的 api_settings 参数
+        print(f"[prepare_for_translation] 参数 api_settings: {getattr(self, 'api_settings', None)}")
         # 获取目标平台
         if mode == TaskType.TRANSLATION:
+            print("[prepare_for_translation] 获取翻译平台 ...")
             self.target_platform = self.api_settings["translate"]
         elif mode == TaskType.POLISH:
+            print("[prepare_for_translation] 获取润色平台 ...")
             self.target_platform = self.api_settings["polish"]
         elif mode == TaskType.FORMAT:
+            print("[prepare_for_translation] 获取格式化平台 ...")
             self.target_platform = self.api_settings["format"]
+        print(f"[prepare_for_translation] 目标平台: {self.target_platform}")
 
         # 获取模型类型
-        self.model = self.platforms.get(self.target_platform).get("model")
+        platform_conf = self.platforms.get(self.target_platform)
+        if platform_conf is None:
+            example = f'{{"{self.target_platform}": {{...}}}}'
+            raise ValueError(f"platforms 参数缺少 {self.target_platform} 的配置，请检查 API 传参。platforms 应包含如: {example}")
+        print("[prepare_for_translation] 获取模型类型 ...")
+        self.model = platform_conf.get("model")
+        print(f"[prepare_for_translation] 模型: {self.model}")
 
         # 分割密钥字符串
+        print("[prepare_for_translation] 获取API Key ...")
         api_key = self.platforms.get(self.target_platform).get("api_key")
         if api_key == "":
             self.apikey_list = ["no_key_required"]
@@ -89,8 +159,10 @@ class TaskConfig(BaseLogic):
         else:
             self.apikey_list = re.sub(r"\s+","", api_key).split(",")
             self.apikey_index = 0
+        print(f"[prepare_for_translation] apikey_list: {self.apikey_list}")
 
         # 获取接口地址并自动补全
+        print("[prepare_for_translation] 获取接口地址 ...")
         self.base_url = self.platforms.get(self.target_platform).get("api_url")
         auto_complete = self.platforms.get(self.target_platform).get("auto_complete")
 
@@ -100,17 +172,22 @@ class TaskConfig(BaseLogic):
             version_suffixes = ["/v1", "/v2", "/v3", "/v4"]
             if not any(self.base_url.endswith(suffix) for suffix in version_suffixes):
                 self.base_url += "/v1"
+        print(f"[prepare_for_translation] base_url: {self.base_url}")
 
         # 获取接口限额
-        self.rpm_limit = self.platforms.get(self.target_platform).get("rpm_limit", 4096)    # 当取不到账号类型对应的预设值，则使用该值
-        self.tpm_limit = self.platforms.get(self.target_platform).get("tpm_limit", 10000000)    # 当取不到账号类型对应的预设值，则使用该值
+        print("[prepare_for_translation] 获取接口限额 ...")
+        self.rpm_limit = self.platforms.get(self.target_platform).get("rpm_limit", 4096)
+        self.tpm_limit = self.platforms.get(self.target_platform).get("tpm_limit", 10000000)
+        print(f"[prepare_for_translation] rpm_limit: {self.rpm_limit}, tpm_limit: {self.tpm_limit}")
 
         # 根据密钥数量给 RPM 和 TPM 限额翻倍
         self.rpm_limit = self.rpm_limit * len(self.apikey_list)
         self.tpm_limit = self.tpm_limit * len(self.apikey_list)
+        print(f"[prepare_for_translation] 限额乘以密钥数: rpm_limit={self.rpm_limit}, tpm_limit={self.tpm_limit}")
 
         # 如果开启自动设置输出文件夹功能，设置为输入文件夹的平级目录
         if self.auto_set_output_path == True:
+            print("[prepare_for_translation] 自动设置输出路径 ...")
             abs_input_path = os.path.abspath(self.label_input_path)
             parent_dir = os.path.dirname(abs_input_path)
             output_folder_name = "AiNieeOutput"
@@ -121,17 +198,22 @@ class TaskConfig(BaseLogic):
             parent_dir = os.path.dirname(abs_input_path)
             output_folder_name = "PolishingOutput"
             self.polishing_output_path = os.path.join(parent_dir, output_folder_name)
+            print(f"[prepare_for_translation] label_output_path: {self.label_output_path}, polishing_output_path: {self.polishing_output_path}")
 
-        # 保存新配置
-        config = self.load_config()
-        config["label_output_path"] = self.label_output_path
-        config["polishing_output_path"] = self.polishing_output_path
-        self.save_config(config)
-
+        # 只在非API场景下保存全局配置
+        if not from_api:
+            config = self.load_config()
+            print("[prepare_for_translation] 保存新配置前 config:", config)
+            print(f"[prepare_for_translation] label_output_path: {self.label_output_path}, polishing_output_path: {self.polishing_output_path}")
+            config["label_output_path"] = self.label_output_path
+            config["polishing_output_path"] = self.polishing_output_path
+            self.save_config(config)
+            print("[prepare_for_translation] 保存新配置后")
 
         # 计算实际线程数
+        print("[prepare_for_translation] 计算实际线程数 ...")
         self.actual_thread_counts = self.thread_counts_setting(self.user_thread_counts,self.target_platform,self.rpm_limit)
-
+        print(f"[prepare_for_translation] actual_thread_counts: {self.actual_thread_counts}")
 
     # 自动计算实际请求线程数
     def thread_counts_setting(self,user_thread_counts,target_platform,rpm_limit) -> None:

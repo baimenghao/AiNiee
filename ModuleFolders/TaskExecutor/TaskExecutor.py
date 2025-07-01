@@ -144,51 +144,59 @@ class TaskExecutor(BaseLogic):
             return None
 
     # 翻译主流程
-    def translation_start_target(self, continue_status: bool) -> None:
-
-        # 设置翻译状态为正在翻译状态
+    def translation_start_target(self, continue_status: bool, from_api: bool = False) -> None:
+        print("[translation_start_target] 进入方法, continue_status=", continue_status)
         self.work_status = self.STATUS.TASKING
 
-        # 读取配置文件，并保存到该类中
-        self.config.initialize()
+        # 仅页面/本地操作时才初始化配置
+        if not from_api:
+            print("[translation_start_target] 初始化配置 ...")
+            self.config.initialize()
 
-        # 配置翻译平台信息
-        self.config.prepare_for_translation(TaskType.TRANSLATION)
+        print("[translation_start_target] 配置翻译平台信息 ...")
+        self.config.prepare_for_translation(TaskType.TRANSLATION, from_api=from_api)
 
         # 配置请求限制器
+        print("[translation_start_target] 配置请求限制器 ...")
         self.request_limiter.set_limit(self.config.tpm_limit, self.config.rpm_limit)
 
         # 初开始翻译时，生成监控数据
         if continue_status == False:
+            print("[translation_start_target] 初始化项目状态数据 ...")
             self.project_status_data = CacheProjectStatistics()
             self.cache_manager.project.stats_data = self.project_status_data
-        # 继续翻译时加载存储的监控数据
         else:
+            print("[translation_start_target] 继续翻译，加载项目状态数据 ...")
             self.project_status_data = self.cache_manager.project.stats_data
             self.project_status_data.start_time = time.time() # 重置开始时间
             self.project_status_data.total_completion_tokens = 0 # 重置完成的token数量
 
         # 更新监控面板信息
+        print("[translation_start_target] 更新监控面板信息 ...")
         self.emit(self.EVENT.TASK_UPDATE, self.project_status_data.to_dict())
 
         # 触发插件事件
+        print("[translation_start_target] 触发插件事件 ...")
         self.plugin_manager.broadcast_event("text_filter", self.config, self.cache_manager.project)
         self.plugin_manager.broadcast_event("preproces_text", self.config, self.cache_manager.project)
 
         # 根据最大轮次循环
+        print("[translation_start_target] 进入主循环, 最大轮次:", self.config.round_limit + 1)
         for current_round in range(self.config.round_limit + 1):
+            print(f"[translation_start_target] 当前轮次: {current_round}")
             # 检测是否需要停止任务
             if self.work_status == self.STATUS.STOPING:
-                # 循环次数比实际最大轮次要多一轮，当触发停止翻译的事件时，最后都会从这里退出任务
-                # 执行到这里说明停止任意的任务已经执行完毕，可以重置内部状态了
+                print("[translation_start_target] 检测到停止信号，退出 ...")
                 self.work_status = self.STATUS.TASKSTOPPED
                 return None
 
             # 获取 待翻译 状态的条目数量
             item_count_status_untranslated = self.cache_manager.get_item_count_by_status(TranslationStatus.UNTRANSLATED)
+            print(f"[translation_start_target] 当前未翻译条目数: {item_count_status_untranslated}")
 
             # 判断是否需要继续翻译
             if item_count_status_untranslated == 0:
+                print("[translation_start_target] 所有文本已翻译，任务结束 ...")
                 self.print("")
                 self.info("所有文本均已翻译，翻译任务已结束 ...")
                 self.print("")
@@ -196,6 +204,7 @@ class TaskExecutor(BaseLogic):
 
             # 达到最大翻译轮次时
             if item_count_status_untranslated > 0 and current_round == self.config.round_limit:
+                print("[translation_start_target] 达到最大轮次，仍有未翻译文本 ...")
                 self.print("")
                 self.warning("已达到最大翻译轮次，仍有部分文本未翻译，请检查结果 ...")
                 self.print("")
@@ -203,14 +212,17 @@ class TaskExecutor(BaseLogic):
 
             # 第一轮时且不是继续翻译时，记录总行数
             if current_round == 0 and continue_status == False:
+                print("[translation_start_target] 记录总行数 ...")
                 self.project_status_data.total_line = item_count_status_untranslated
 
             # 第二轮开始对半切分
             if current_round > 0:
+                print("[translation_start_target] 对半切分 lines_limit/tokens_limit ...")
                 self.config.lines_limit = max(1, int(self.config.lines_limit / 2))
                 self.config.tokens_limit = max(1, int(self.config.tokens_limit / 2))
 
             # 生成缓存数据条目片段的合集列表，原文列表与上文列表一一对应
+            print("[translation_start_target] 生成缓存数据片段 ...")
             chunks, previous_chunks, file_paths = self.cache_manager.generate_item_chunks(
                 "line" if self.config.tokens_limit_switch == False else "token",
                 self.config.lines_limit if self.config.tokens_limit_switch == False else self.config.tokens_limit,
@@ -219,75 +231,38 @@ class TaskExecutor(BaseLogic):
             )
 
             # 生成翻译任务合集列表
+            print(f"[translation_start_target] 生成翻译任务列表, 任务数: {len(chunks)}")
             tasks_list = []
-            print("")
-            self.info(f"正在生成翻译任务 ...")
-            for chunk, previous_chunk, file_path in tqdm(zip(chunks, previous_chunks, file_paths),desc="生成翻译任务", total=len(chunks)):
-                # 确定该任务的主语言
-                language_stats = self.cache_manager.project.get_file(file_path).language_stats # 获取该文件的语言检测数据
-                file_source_lang = get_source_language_for_file(self.config.source_language,self.config.target_language,language_stats)
-
-                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter, file_source_lang)  # 实例化
-                task.set_items(chunk)  # 传入该任务待翻译原文
-                task.set_previous_items(previous_chunk)  # 传入该任务待翻译原文的上文
-                task.prepare(self.config.target_platform)  # 预先构建消息列表
+            for chunk, previous_chunk, file_path in zip(chunks, previous_chunks, file_paths):
+                file_obj = self.cache_manager.project.get_file(file_path)
+                if file_obj is None:
+                    raise ValueError(f"未找到文件: {file_path}，可用文件: {list(self.cache_manager.project.files.keys())}")
+                language_stats = file_obj.language_stats
+                file_source_lang = get_source_language_for_file(self.config.source_language, self.config.target_language, language_stats)
+                task = TranslatorTask(self.config, self.plugin_manager, self.request_limiter, file_source_lang)
+                task.set_items(chunk)
+                task.set_previous_items(previous_chunk)
+                task.prepare(self.config.target_platform)
                 tasks_list.append(task)
-            self.info(f"已经生成全部翻译任务 ...")
-            self.print("")
+            print("[translation_start_target] 翻译任务准备完毕 ...")
 
             # 输出开始翻译的日志
-            self.print("")
-            self.info(f"当前轮次 - {current_round + 1}")
-            self.info(f"最大轮次 - {self.config.round_limit}")
-            self.info(f"项目类型 - {self.config.translation_project}")
-            self.info(f"原文语言 - {self.config.source_language}")
-            self.info(f"译文语言 - {self.config.target_language}")
-            self.print("")
-            self.info(f"接口名称 - {self.config.platforms.get(self.config.target_platform, {}).get("name", "未知")}")
-            self.info(f"接口地址 - {self.config.base_url}")
-            self.info(f"模型名称 - {self.config.model}")
-            self.print("")
-            self.info(f"RPM 限额 - {self.config.rpm_limit}")
-            self.info(f"TPM 限额 - {self.config.tpm_limit}")
-
-            # 根据提示词规则打印基础指令
-            system = ""
-            s_lang = self.config.source_language
-            if self.config.target_platform == "LocalLLM":  # 需要放在前面，以免提示词预设的分支覆盖
-                system = PromptBuilderLocal.build_system(self.config, s_lang)
-            elif self.config.target_platform == "sakura":  # 需要放在前面，以免提示词预设的分支覆盖
-                system = PromptBuilderSakura.build_system(self.config, s_lang)
-            elif self.config.translation_prompt_selection["last_selected_id"] in (PromptBuilderEnum.COMMON, PromptBuilderEnum.COT, PromptBuilderEnum.THINK):
-                system = PromptBuilder.build_system(self.config, s_lang)
-            else:
-                system = self.config.translation_prompt_selection["prompt_content"]
-            self.print("")
-            if system:
-                self.info(f"本次任务使用以下基础提示词：\n{system}\n") 
-
-            self.info(f"即将开始执行翻译任务，预计任务总数为 {len(tasks_list)}, 同时执行的任务数量为 {self.config.actual_thread_counts}，请注意保持网络通畅 ...")
-            time.sleep(3)
-            self.print("")
-
-            # 开始执行翻译任务,构建异步线程池
+            print("[translation_start_target] 开始执行翻译任务 ...")
             with concurrent.futures.ThreadPoolExecutor(max_workers = self.config.actual_thread_counts, thread_name_prefix = "translator") as executor:
                 for task in tasks_list:
                     future = executor.submit(task.start)
-                    future.add_done_callback(self.task_done_callback)  # 为future对象添加一个回调函数，当任务完成时会被调用，更新数据
+                    future.add_done_callback(self.task_done_callback)
 
-        # 等待可能存在的缓存文件写入请求处理完毕
+        print("[translation_start_target] 主流程结束，等待缓存写入 ...")
         time.sleep(CacheManager.SAVE_INTERVAL)
-
-        # 触发插件事件
+        print("[translation_start_target] 触发后处理插件 ...")
         self.plugin_manager.broadcast_event("postprocess_text", self.config, self.cache_manager.project)
 
-        # 如果开启了转换简繁开关功能，则进行文本转换
         if self.config.response_conversion_toggle:
-
+            print("[translation_start_target] 启动简繁转换 ...")
             self.print("")
             self.info(f"已启动自动简繁转换功能，正在使用 {self.config.opencc_preset} 配置进行字形转换 ...")
             self.print("")
-
             converter = opencc.OpenCC(self.config.opencc_preset)
             cache_list = self.cache_manager.project.items_iter()
             for item in cache_list:
@@ -296,32 +271,27 @@ class TaskExecutor(BaseLogic):
                 if item.translation_status == TranslationStatus.POLISHED:
                     item.polished_text = converter.convert(item.polished_text)
 
-        # 输出配置包
         output_config = {
              "translated_suffix": self.config.output_filename_suffix,
              "bilingual_suffix": "_bilingual",
              "bilingual_order": self.config.bilingual_text_order 
         }
-
-        # 写入文件
+        print("[translation_start_target] 写入翻译结果文件 ...")
         self.file_writer.output_translated_content(
             self.cache_manager.project,
             self.config.label_output_path,
             self.config.label_input_path,
             output_config,
         )
+        print(f"[translation_start_target] 翻译结果已保存至 {self.config.label_output_path}")
         self.print("")
         self.info(f"翻译结果已保存至 {self.config.label_output_path} 目录 ...")
         self.print("")
 
-        # 重置内部状态（正常完成翻译）
         self.work_status = self.STATUS.TASKSTOPPED
-
-        # 触发翻译停止完成的事件
+        print("[translation_start_target] 状态重置，触发完成事件 ...")
         self.emit(self.EVENT.TASK_STOP_DONE, {})
         self.plugin_manager.broadcast_event("translation_completed", self.config, self.cache_manager.project)
-
-        # 触发翻译完成事件
         self.emit(self.EVENT.TASK_COMPLETED, {})
 
     # 润色主流程
