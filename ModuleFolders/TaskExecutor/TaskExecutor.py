@@ -1,31 +1,75 @@
+print('[DEBUG] import start TaskExecutor.py')
+print('[DEBUG] before import time')
 import time
+print('[DEBUG] after import time')
+print('[DEBUG] before import threading')
 import threading
+print('[DEBUG] after import threading')
+print('[DEBUG] before import concurrent.futures')
 import concurrent.futures
+print('[DEBUG] after import concurrent.futures')
 
+print('[DEBUG] before import opencc')
 import opencc
+print('[DEBUG] after import opencc')
+print('[DEBUG] before import tqdm')
 from tqdm import tqdm
+print('[DEBUG] after import tqdm')
 
+print('[DEBUG] before import BaseLogic')
 from Base.BaseLogic import BaseLogic
+print('[DEBUG] after import BaseLogic')
+print('[DEBUG] before import TranslationStatus')
 from ModuleFolders.Cache.CacheItem import TranslationStatus
+print('[DEBUG] after import TranslationStatus')
+print('[DEBUG] before import CacheManager')
 from ModuleFolders.Cache.CacheManager import CacheManager
+print('[DEBUG] after import CacheManager')
+print('[DEBUG] before import CacheProjectStatistics')
 from ModuleFolders.Cache.CacheProject import CacheProjectStatistics
+print('[DEBUG] after import CacheProjectStatistics')
+print('[DEBUG] before import TaskType')
 from ModuleFolders.TaskConfig.TaskType import TaskType
+print('[DEBUG] after import TaskType')
+print('[DEBUG] before import TranslatorTask')
 from ModuleFolders.TaskExecutor.TranslatorTask import TranslatorTask
+print('[DEBUG] after import TranslatorTask')
+print('[DEBUG] before import PolisherTask')
 from ModuleFolders.TaskExecutor.PolisherTask import PolisherTask
+print('[DEBUG] after import PolisherTask')
+print('[DEBUG] before import TaskConfig')
 from ModuleFolders.TaskConfig.TaskConfig import TaskConfig
+print('[DEBUG] after import TaskConfig')
+print('[DEBUG] before import PromptBuilder')
 from ModuleFolders.PromptBuilder.PromptBuilder import PromptBuilder
+print('[DEBUG] after import PromptBuilder')
+print('[DEBUG] before import PromptBuilderPolishing')
 from ModuleFolders.PromptBuilder.PromptBuilderPolishing import PromptBuilderPolishing
+print('[DEBUG] after import PromptBuilderPolishing')
+print('[DEBUG] before import PromptBuilderEnum')
 from ModuleFolders.PromptBuilder.PromptBuilderEnum import PromptBuilderEnum
+print('[DEBUG] after import PromptBuilderEnum')
+print('[DEBUG] before import PromptBuilderLocal')
 from ModuleFolders.PromptBuilder.PromptBuilderLocal import PromptBuilderLocal
+print('[DEBUG] after import PromptBuilderLocal')
+print('[DEBUG] before import PromptBuilderSakura')
 from ModuleFolders.PromptBuilder.PromptBuilderSakura import PromptBuilderSakura
+print('[DEBUG] after import PromptBuilderSakura')
+print('[DEBUG] before import RequestLimiter')
 from ModuleFolders.RequestLimiter.RequestLimiter import RequestLimiter
+print('[DEBUG] after import RequestLimiter')
+print('[DEBUG] before import get_source_language_for_file')
 from ModuleFolders.TaskExecutor.TranslatorUtil import get_source_language_for_file
+print('[DEBUG] after import get_source_language_for_file')
+print('[DEBUG] import end TaskExecutor.py')
 
 
 # 翻译器
+print('[DEBUG] class TaskExecutor definition')
 class TaskExecutor(BaseLogic):
 
     def __init__(self, plugin_manager,cache_manager, file_reader, file_writer) -> None:
+        print('[DEBUG] TaskExecutor.__init__ start')
         super().__init__()
 
         # 初始化
@@ -41,6 +85,7 @@ class TaskExecutor(BaseLogic):
         self.subscribe(self.EVENT.TASK_START, self.task_start)
         self.subscribe(self.EVENT.TASK_MANUAL_EXPORT, self.task_manual_export)
         self.subscribe(self.EVENT.APP_SHUT_DOWN, self.app_shut_down)
+        print('[DEBUG] TaskExecutor.__init__ end')
 
     # 应用关闭事件
     def app_shut_down(self, event: int, data: dict) -> None:

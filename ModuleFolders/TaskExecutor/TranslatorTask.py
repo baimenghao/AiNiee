@@ -106,7 +106,8 @@ class TranslatorTask(BaseLogic):
 
         # 预估 Token 消费
         self.request_tokens_consume = self.request_limiter.calculate_tokens(self.messages,self.system_prompt,)
-
+        if self.request_tokens_consume is None:
+            self.request_tokens_consume = 0
 
     # 启动任务
     def start(self) -> dict:

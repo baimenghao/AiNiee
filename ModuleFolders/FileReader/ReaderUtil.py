@@ -1,3 +1,4 @@
+print('[DEBUG] import start ReaderUtil.py')
 import os
 import pathlib
 import re
@@ -14,6 +15,7 @@ from mediapipe.tasks.python.text import LanguageDetector
 
 from ModuleFolders.Cache.CacheFile import CacheFile
 from ModuleFolders.Cache.CacheItem import CacheItem
+print('[DEBUG] import end ReaderUtil.py')
 
 _LANG_DETECTOR_INSTANCE: LanguageDetector | None = None
 """语言检测器单例实现"""

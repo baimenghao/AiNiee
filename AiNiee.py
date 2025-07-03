@@ -24,17 +24,38 @@
 #             赛博佛祖光耀照，程序运行永无忧。
 #             翻译之路顺畅通，字字珠玑无误漏。
 
+print('[DEBUG] import start AiNiee.py')
+print('[DEBUG] before import os')
 import os
+print('[DEBUG] after import os')
+print('[DEBUG] before import sys')
 import sys
+print('[DEBUG] after import sys')
+print('[DEBUG] before import multiprocessing')
 import multiprocessing
+print('[DEBUG] after import multiprocessing')
+print('[DEBUG] before import warnings')
 import warnings
+print('[DEBUG] after import warnings')
 
+print('[DEBUG] before import rapidjson')
 import rapidjson as json
+print('[DEBUG] after import rapidjson')
+print('[DEBUG] before import MarkupResemblesLocatorWarning')
 from bs4 import MarkupResemblesLocatorWarning
+print('[DEBUG] after import MarkupResemblesLocatorWarning')
+print('[DEBUG] before import print from rich')
 from rich import print
+print('[DEBUG] after import print from rich')
+print('[DEBUG] before import QFont QIcon QColor')
 from PyQt5.QtGui import QFont, QIcon, QColor
+print('[DEBUG] after import QFont QIcon QColor')
+print('[DEBUG] before import Qt')
 from PyQt5.QtCore import Qt
+print('[DEBUG] after import Qt')
+print('[DEBUG] before import QApplication QSplashScreen')
 from PyQt5.QtWidgets import QApplication, QSplashScreen
+print('[DEBUG] after import QApplication QSplashScreen')
 
 
 # 过滤protobuf的警告信息

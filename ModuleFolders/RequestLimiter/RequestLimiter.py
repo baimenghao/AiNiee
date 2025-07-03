@@ -39,24 +39,12 @@ class RequestLimiter:
             self.last_request_time = current_time
             return True
 
-    def tpm_limiter(self, tokens: int) -> bool:
-        now = time.time()  # 获取现在的时间
-        tokens_to_add = (now - self.last_time) * self.tokens_rate  # 现在时间减去上一次记录的时间，乘以恢复速率，得出这段时间恢复的tokens数量
-        self.remaining_tokens = min(self.max_tokens, self.remaining_tokens + tokens_to_add)  # 计算新的剩余容量，与最大容量比较，谁小取谁值，避免发送信息超过最大容量
-        self.last_time = now  # 改变上次记录时间
-
-        # 检查是否超过模型最大输入限制
+    def tpm_limiter(self, tokens):
+        if tokens is None:
+            tokens = 0
         if tokens >= self.max_tokens:
-            print("[Warning INFO] 该次任务的文本总tokens量已经超过最大输入限制，将直接进入下次拆分轮次")
             return False
-        
-        # 检查是否超过余量
-        elif tokens >= self.remaining_tokens:
-            return False
-        
-        else:
-            # print("[DEBUG] 数量足够，剩余tokens：", tokens,'\n' )
-            return True
+        return True
 
     def check_limiter(self, tokens: int) -> bool:
         # 如果能够发送请求，则扣除令牌桶里的令牌数

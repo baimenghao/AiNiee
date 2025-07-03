@@ -1,3 +1,4 @@
+print('[DEBUG] import start TaskConfig.py')
 import os
 import re
 import threading
@@ -7,7 +8,9 @@ import rapidjson as json
 
 from Base.BaseLogic import BaseLogic
 from ModuleFolders.TaskConfig.TaskType import TaskType
+print('[DEBUG] import end TaskConfig.py')
 
+print('[DEBUG] class TaskConfig definition')
 # 接口请求器
 class TaskConfig(BaseLogic):
 
@@ -15,11 +18,15 @@ class TaskConfig(BaseLogic):
     TYPE_FILTER = (int, str, bool, float, list, dict, tuple)
 
     def __init__(self) -> None:
+        print('[DEBUG] TaskConfig.__init__ start')
         super().__init__()
-        
-        # 初始化实例级线程锁和密钥索引
-        self._config_lock = threading.Lock()
+        self.init_local_config()
+        print('[DEBUG] TaskConfig.__init__ end')
 
+    def init_local_config(self) -> None:
+        print('[DEBUG] TaskConfig.init_local_config start')
+        # 只做本地变量、配置文件的初始化，不做任何网络请求
+        self._config_lock = threading.Lock()
         self._api_key_lock = threading.Lock()
         self.apikey_index = 0
         self.apikey_list = []
@@ -82,6 +89,19 @@ class TaskConfig(BaseLogic):
         self.scale_factor = "100%"
         self.interface_language_setting = "auto"
         self.auto_check_update = True
+        self.response_check_switch = {
+            "newline_character_count_check": False,
+            "html_tag_check": False,
+            "markdown_check": False,
+            "code_block_check": False,
+            "image_check": False,
+            "table_check": False,
+            "list_check": False,
+            "link_check": False,
+            "check_all": False
+        }
+        
+        print('[DEBUG] TaskConfig.init_local_config end')
 
     def __repr__(self) -> str:
         return (
@@ -239,7 +259,8 @@ class TaskConfig(BaseLogic):
         try:
             num = -1
             url = url.replace("/v1", "") if url.endswith("/v1") else url
-            with urllib.request.urlopen(f"{url}/slots") as response:
+            # 增加timeout，防止阻塞
+            with urllib.request.urlopen(f"{url}/slots", timeout=5) as response:
                 data = json.loads(response.read().decode("utf-8"))
                 num = len(data) if data != None and len(data) > 0 else num
         except Exception:
@@ -320,6 +341,12 @@ class TaskConfig(BaseLogic):
 
 
         return params
+
+    def init_api_config(self, mode, from_api=False) -> None:
+        """
+        由GUI或API线程调用，做API相关的初始化和检测。
+        """
+        self.prepare_for_translation(mode, from_api=from_api)
 
 
 
