@@ -154,19 +154,7 @@ class SimpleExecutor(Base):
     # 术语表翻译
     def glossary_translation(self, event, data: dict):
 
-        # 获取参数
-        platform_tag = data.get("tag")
-        api_url = data.get("api_url")
-        api_key = data.get("api_key")
-        api_format = data.get("api_format")
-        model_name = data.get("model")
-        auto_complete = data.get("auto_complete")
-        extra_body = data.get("extra_body",{})
-        region = data.get("region")
-        access_key = data.get("access_key")
-        secret_key = data.get("secret_key")
-        target_language = data.get("target_language")
-
+        # 获取表格数据
         prompt_dictionary_data = data.get("prompt_dictionary_data")
         if not prompt_dictionary_data:
             self.info("没有需要翻译的术语")
@@ -175,20 +163,6 @@ class SimpleExecutor(Base):
                 "updated_data": prompt_dictionary_data
             })
             return
-
-        # 自动补全API地址
-        if platform_tag == "sakura" and not api_url.endswith("/v1"):
-            api_url += "/v1"
-        elif auto_complete:
-            version_suffixes = ["/v1", "/v2", "/v3", "/v4"]
-            if not any(api_url.endswith(suffix) for suffix in version_suffixes):
-                api_url += "/v1"
-
-
-        # 解析并分割密钥字符串，并只取第一个密钥进行测试
-        api_keys = re.sub(r"\s+","", api_key).split(",")
-        api_key = api_keys[0]
-
 
         # 获取未翻译术语
         untranslated_items = [item for item in prompt_dictionary_data if not item.get("dst")]
@@ -199,6 +173,13 @@ class SimpleExecutor(Base):
                 "updated_data": prompt_dictionary_data
             })
             return
+
+        # 准备翻译配置
+        config = TaskConfig()
+        config.initialize()
+        config.prepare_for_translation(TaskType.TRANSLATION)
+        platform_config = config.get_platform_configuration("translationReq")
+        target_language = config.target_language
 
         # 分组处理（每组最多50个）
         group_size = 50
@@ -212,19 +193,6 @@ class SimpleExecutor(Base):
                 f"├ 分组数量: {total_groups}\n"
                 f"└ 每组上限: {group_size}术语")
         print("")
-
-        # 构建平台配置
-        platform_config = {
-            "target_platform": platform_tag,
-            "api_url": api_url,
-            "api_key": api_key,
-            "api_format": api_format,
-            "model_name": model_name,
-            "region": region,
-            "access_key": access_key,
-            "secret_key": secret_key,
-            "extra_body": extra_body
-        }
 
         # 分组翻译处理
         for group_idx in range(total_groups):
@@ -243,7 +211,7 @@ class SimpleExecutor(Base):
             system_prompt = (
                 f"Translate the source text from the glossary into {target_language} line by line, maintaining accuracy and naturalness, and output the translation wrapped in a textarea tag:\n"
                 "<textarea>\n"
-                f"1.{target_language}text\n"
+                f"1.{target_language} text\n"
                 "</textarea>\n"
             )
 
@@ -261,8 +229,6 @@ class SimpleExecutor(Base):
             print("")
             self.info(
                     f" 正在发送API请求...\n"
-                    f"│ 平台类型: {platform_tag}\n"
-                    f"│ 模型名称: {model_name}\n"
                     f"└ 目标语言: {target_language}")
             print("")
 
@@ -355,7 +321,7 @@ class SimpleExecutor(Base):
         file_source_lang = get_source_language_for_file(config.source_language, config.target_language, language_stats)
 
         # 翻译任务分割
-        MAX_LINES = 10  # 最大行数
+        MAX_LINES = 20  # 最大行数
         LOG_WIDTH = 50  # 日志框的统一宽度
         total_items = len(items_to_translate)
         num_batches = (total_items + MAX_LINES - 1) // MAX_LINES
@@ -459,7 +425,7 @@ class SimpleExecutor(Base):
         polishing_mode_selection = config.polishing_mode_selection
 
         # 翻译任务分割
-        MAX_LINES = 10  # 最大行数
+        MAX_LINES = 20  # 最大行数
         LOG_WIDTH = 50  # 日志框的统一宽度
         total_items = len(items_to_polish)
         num_batches = (total_items + MAX_LINES - 1) // MAX_LINES
@@ -659,7 +625,6 @@ class SimpleExecutor(Base):
 
     # 术语提取处理方法
     def process_term_extraction(self, data: dict):
-        """在后台线程中执行术语提取的核心逻辑"""
         params = data.get("params", {})
         items_data = data.get("items_data", [])
 
@@ -674,10 +639,10 @@ class SimpleExecutor(Base):
         # 实例化独立的处理器
         processor = NERProcessor()
         
-        # 调用处理器的方法，传入数据和参数
+        # 调用处理器的方法，传入正确的参数
         results = processor.extract_terms(
             items_data=items_data,
-            language=params.get("language"),
+            model_name=params.get("model_name"), # 使用 model_name
             entity_types=params.get("entity_types")
         )
         
@@ -716,7 +681,7 @@ class SimpleExecutor(Base):
         target_language = config.target_language
 
         # 将原文分批处理
-        MAX_LINES = 10  # 每批最大原文行数
+        MAX_LINES = 20  # 每批最大原文行数
         LOG_WIDTH = 50 # 日志框统一宽度
         total_items = len(unique_contexts)
         num_batches = (total_items + MAX_LINES - 1) // MAX_LINES
@@ -744,17 +709,16 @@ class SimpleExecutor(Base):
             user_content = "\n".join(batch_contexts)
 
             # 要求模型将所有结果放入一个<textarea>标签中，每个术语占一行。
-            system_prompt = (
-                f"You are an expert in terminology extraction and translation. The user will provide a block of text containing several sentences. "
-                f"Your task is to carefully read these sentences, identify all character names and technical terms within them, and provide a translation for each into {target_language}. "
-                f"Also, add a brief note identifying the type of term (e.g., '女性', '物品', '地名').\n"
-                f"Your response must STRICTLY follow the format below. Enclose ALL entries within a SINGLE <textarea> tag, with each entry on a new line:\n\n"
-                "<textarea>\n"
-                "\"Original Term 1|Translated Term 1|Note 1\"\n"
-                "\"Original Term 2|Translated Term 2|Note 2\"\n"
-                "\"...|...|...\"\n"
-                "</textarea>"
-            )
+            system_prompt = f"""你是一位专业的术语提取与翻译专家。你的任务是分析用户提供的文本，遵循以下步骤：
+1.  **识别关键术语**：从文本中提取所有专有名词。术语类型包括但不限于：人名、地名、组织、物品、装备、技能、魔法、种族、生物等。
+2.  **翻译术语**：将每个识别出的术语准确翻译成“{target_language}”。
+3.  **标注类型**：为每个术语附上简短的类型注释（例如：“女性人名”、“地名”、“组织”、“物品”）。
+###输以textarea标签输出
+<textarea>
+原文1|译文1|注释1
+原文2|译文2|注释2
+...|...|...
+</textarea>"""
             messages = [{"role": "user", "content": user_content}]
             
             print(f"├─ 正在向AI发送请求 (共 {len(batch_contexts)} 行)...")
@@ -798,9 +762,6 @@ class SimpleExecutor(Base):
                     line = line.strip()
                     if not line: # 跳过可能存在的空行
                         continue
-
-                    if line.startswith('"') and line.endswith('"'):
-                        line = line[1:-1]
                     
                     parts = line.split('|')
                     if len(parts) == 3:

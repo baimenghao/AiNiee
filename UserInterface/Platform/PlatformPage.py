@@ -148,7 +148,7 @@ class PlatformPage(QFrame, Base):
         "rpm_limit": 4096,
         "tpm_limit": 8000000,
         "model": "gpt-4o",
-        "top_p": 0.9,
+        "top_p": 1.0,
         "temperature": 1.0,
         "presence_penalty": 0.0,
         "frequency_penalty": 0.0,
@@ -160,16 +160,13 @@ class PlatformPage(QFrame, Base):
             "gpt-4o",
             "gpt-4o-mini",
             "gpt-4-turbo",
-            "gpt-3.5-turbo",
-            "claude-3-haiku",
-            "claude-3-sonnet",
-            "claude-3-opus",
             "claude-3-5-haiku",
             "claude-3-5-sonnet",
         ],
         "format_datas": [
             "OpenAI",
             "Anthropic",
+            "Google"
         ],
         "extra_body": {},
         "key_in_settings": [
@@ -186,7 +183,8 @@ class PlatformPage(QFrame, Base):
             "frequency_penalty",
             "extra_body",
             "think_switch",
-            "think_depth"
+            "think_depth",
+            "thinking_budget"
         ],
     }
 

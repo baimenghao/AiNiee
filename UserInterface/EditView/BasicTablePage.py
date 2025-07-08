@@ -14,6 +14,12 @@ class BasicTablePage(Base,QWidget):
     COL_TRANS = 2 # 译文
     COL_POLISH = 3 # 润文
 
+    def closeEvent(self, event):
+        # 在窗口关闭时，执行清理工作
+        print("BasicTablePage is closing, unregistering from EventManager.")
+        
+        super().closeEvent(event) # 调用父类的 closeEvent
+
     # 修改构造函数
     def __init__(self, file_path: str, file_items: list, cache_manager, parent=None):
         super().__init__(parent)
@@ -138,9 +144,9 @@ class BasicTablePage(Base,QWidget):
 
         if has_selection:
             # 当有行被选中时，添加功能性操作
-            menu.addAction(Action(FIF.EDIT, self.tra("翻译文本"), triggered=self._translate_text))
+            menu.addAction(Action(FIF.EXPRESSIVE_INPUT_ENTRY, self.tra("翻译文本"), triggered=self._translate_text))
             menu.addAction(Action(FIF.BRUSH, self.tra("润色文本"), triggered=self._polish_text))
-            menu.addAction(Action(FIF.BRUSH, self.tra("排版文本"), triggered=self._format_text))
+            menu.addAction(Action(FIF.CLIPPING_TOOL, self.tra("排版文本"), triggered=self._format_text))
             menu.addSeparator()
 
             menu.addAction(Action(FIF.COPY, self.tra("禁止翻译"), triggered=self._copy_source_to_translation))
@@ -314,8 +320,8 @@ class BasicTablePage(Base,QWidget):
     # 排版文本
     def _format_text(self):
         cache_file = self.cache_manager.project.get_file(self.file_path)
-        if not cache_file or cache_file.file_project_type != ProjectType.TXT:
-            MessageBox(self.tra("操作受限"), self.tra("“排版文本”功能当前仅支持 TXT 类型的项目文件。"), self.window()).exec() # M
+        if not cache_file or cache_file.file_project_type not in (ProjectType.TXT, ProjectType.MD):
+            MessageBox(self.tra("操作受限"), self.tra("“排版文本”功能当前仅支持 TXT MD 类型的项目文件。"), self.window()).exec() # M
             return
 
         selected_rows = self._get_selected_rows_indices()
